@@ -9,9 +9,8 @@
             "type": "lldb",
             "request": "attach",
             "name": "Debug",
-            "pid": "6799",
-            "program": "${workspaceFolder}/wavplayer.a",
-            "args": ["gui"],
+            // "pid": "6799",
+            "program": "${workspaceFolder}/player.a",
             "cwd": "${workspaceFolder}"
         }
     ]
