@@ -23,7 +23,6 @@ namespace CursesAudioPlayer{
 
     class RenderWorker {
 
-        
         WINDOW *_cmdWindow;
         WINDOW *_spectrumWindow;
         WINDOW *_playbackInfoWindow;

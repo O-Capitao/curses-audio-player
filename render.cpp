@@ -67,6 +67,7 @@ void RenderWorker::run(){
 
         wattron(_cmdWindow, A_BOLD );
         mvwprintw( _cmdWindow, 1, 1, boost::posix_time::to_simple_string( _now ).c_str() );
+
         wattroff(_cmdWindow, A_BOLD );
         mvwprintw( _cmdWindow, 1, _topTerminalSize.x - commands.size() - 2, commands.c_str() );
 

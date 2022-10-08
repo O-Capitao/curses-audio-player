@@ -5,6 +5,7 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 
 #include "render.hpp"
+#include "audio.hpp"
 
 using namespace CursesAudioPlayer;
 
@@ -31,10 +32,23 @@ void eventHandlerThread(){
 /****
  *  MAIN
  */
-int main()
+int main(int argc, char *argv[])
 {
+    sleep(5);
+    if (argc != 2){
+        throw std::runtime_error("Please supply a path to the audio file");
+        return 1;
+    }
+
+    std::string file_path = argv[1];
+
+    
+    AudioEngine engine;
+    engine.loadFile(file_path.c_str());
+
+
     // interval for me to attach the debugger
-    // sleep(5);
+    // 
 
     // Set Terminal Size
     printf("\e[8;24;120t");
@@ -49,7 +63,7 @@ int main()
 
     // init objects
     RenderWorker renderWorker;
-
+    
     // launch the separateThreads
     boost::thread renderT{boost::bind(&RenderWorker::run, &renderWorker)};
     boost::thread inputT{eventHandlerThread};
