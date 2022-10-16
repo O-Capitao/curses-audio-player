@@ -1,13 +1,15 @@
 #include "audio.hpp"
 #include <string>
 #include  <filesystem>
-
-#define FRAMES_PER_BUFFER   (512)
+#include <math.h>
 
 using namespace CursesAudioPlayer;
 
-AudioEngine::AudioEngine(){
+extern bool QUIT;
+extern SpectrumInfoFrame *activeFrame;
 
+AudioEngine::AudioEngine(){
+    _calculateWindowFunction();
 }
 
 AudioEngine::~AudioEngine(){
@@ -17,38 +19,40 @@ AudioEngine::~AudioEngine(){
 
 void AudioEngine::loadFile( const std::string& path){
 
-    if (activeFile != NULL){
+    if (_data != NULL){
         _unloadFile();
     }
 
-    activeFile = new AudioFile();
-    activeFile->file = sf_open( path.c_str(), SFM_READ, &activeFile->info);
-
-    playFile();
+    _data = new AudioData();
+    _data->file = sf_open( path.c_str(), SFM_READ, &_data->info);
+    _data->plan = fftw_plan_dft_r2c_1d( FRAMES_PER_BUFFER, _data->fft_in, _data->fft_out, FFTW_MEASURE );
 
 }
 
 void AudioEngine::_unloadFile(){
 
-    if (activeFile == NULL) return;
+    if (_data == NULL) return;
 
-    sf_close(activeFile->file);
-    delete activeFile->file;
+    sf_close(_data->file);
 
-    delete activeFile;
+    delete _data;
 
-    activeFile = NULL;
+    _data = NULL;
 
 }
 
 const SoundFileInfo &AudioEngine::getSoundFileInfo(){
-    if (activeFile != NULL){
-        return activeFile->sfInfo;
+    if (_data != NULL){
+        return _data->sfInfo;
     } 
     throw std::runtime_error("No active File, dumping...\n");
 }
 
-int AudioEngine::_paStreamCallback(const void                     *input
+
+
+
+int AudioEngine::_paStreamCallback(
+    const void                     *input
     ,void                           *output
     ,unsigned long                   frameCount
     ,const PaStreamCallbackTimeInfo *timeInfo
@@ -56,13 +60,18 @@ int AudioEngine::_paStreamCallback(const void                     *input
     ,void                           *userData
     )
 {
-    float           *out;
-    AudioFile *p_data = (AudioFile*)userData;
 
-    sf_count_t       num_read;
+    if (QUIT){
+        return paComplete;
+    }
+
+    float *out;
+    AudioData *p_data = (AudioData*)userData;
+
+    sf_count_t num_read;
 
     out = (float*)output;
-    p_data = (AudioFile*)userData;
+    p_data = (AudioData*)userData;
 
     /* clear output buffer */
     memset(out, 0, sizeof(float) * frameCount * p_data->info.channels);
@@ -70,6 +79,11 @@ int AudioEngine::_paStreamCallback(const void                     *input
     /* read directly into output buffer */
     num_read = sf_read_float(p_data->file, out, frameCount * p_data->info.channels);
     
+    // do Fourier transform stuff
+    // float *in = (float*)input;
+    _copyArray( out, p_data->fft_in, FRAMES_PER_BUFFER );
+    // fftw_execute(p_data->plan);
+
     /*  If we couldn't read a full frameCount of samples we've reached EOF */
     if (num_read < frameCount)
     {
@@ -89,7 +103,7 @@ void AudioEngine::playFile(){
         throw std::runtime_error("Error initing the AudioEngine");
     }
 
-    if ( activeFile == NULL ){
+    if ( _data == NULL ){
         err = Pa_Terminate();
 
         throw std::runtime_error("No data to play, shutting down.\n");
@@ -98,12 +112,12 @@ void AudioEngine::playFile(){
     err = Pa_OpenDefaultStream(
         &stream,
         0,
-        activeFile->info.channels,
+        _data->info.channels,
         paFloat32,
-        activeFile->info.samplerate,
+        _data->info.samplerate,
         FRAMES_PER_BUFFER,
         _paStreamCallback,
-        activeFile
+        _data
     );
 
     if( err != paNoError )
@@ -116,15 +130,33 @@ void AudioEngine::playFile(){
     if (err != paNoError){
         throw std::runtime_error("Error starting Stream\n");
     }
-
+    PLAYING = true;
     /* Run until EOF is reached */
     while(Pa_IsStreamActive(stream))
     {
         Pa_Sleep(100);
     }
 
+    closeFile();
+}
+
+void AudioEngine::pauseFile(){
+    if (PLAYING){
+        PaError err = Pa_CloseStream( stream );
+
+        if (err != paNoError){
+            throw std::runtime_error("Error Stopping stream\n");
+        }
+    }
+}
+
+void AudioEngine::closeFile(){
+    
+    PaError err;
+
+    PLAYING = false;
     /* Close the soundfile */
-    sf_close(activeFile->file);
+    sf_close(_data->file);
 
     /*  Shut down portaudio */
     err = Pa_CloseStream(stream);
@@ -138,7 +170,30 @@ void AudioEngine::playFile(){
     {
         throw std::runtime_error("Error terminating Portaudio.\n");
     }
+}
+
+void AudioEngine::_calculateWindowFunction(){
+
+    for (int i = 0; i < FRAMES_PER_BUFFER; i++){
+
+        _windowFunctionPoints[i] = pow( sin( M_PI * i / (FRAMES_PER_BUFFER - 1) ), 2);
+
+    }
 
 }
+
+
+void AudioEngine::_multiplyArrays(double *arr1, double*arr2, double *out, int l){
+    for (int i = 0; i < l; i++ ){
+        out[i] = arr1[i] * arr2[i];
+    }
+}
+
+void AudioEngine::_copyArray(float *src, double*tgt, int l){
+    for (int i = 0; i < l; i++){
+        tgt[i] = src[i];
+    }
+}
+
 
 

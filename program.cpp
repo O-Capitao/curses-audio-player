@@ -11,6 +11,9 @@ using namespace CursesAudioPlayer;
 
 // Globl Quit signal
 bool QUIT = false;
+bool PLAY = false; // if false its stopped.
+
+SpectrumInfoFrame *activeFrame = NULL;
 
 void eventHandlerThread(){
 
@@ -21,10 +24,12 @@ void eventHandlerThread(){
   
     if (c == 'q' || c == 'Q'){
         QUIT = true;
+    } else if ( c == 'p' ){
+        PLAY = !PLAY;
     }
-  
+    
+    boost::this_thread::sleep(boost::posix_time::millisec(100));   
   }
-
 }
 
 
@@ -34,11 +39,13 @@ void eventHandlerThread(){
  */
 int main(int argc, char *argv[])
 {
-    sleep(5);
+    // sleep(5);
     if (argc != 2){
         throw std::runtime_error("Please supply a path to the audio file");
         return 1;
     }
+
+    printf("starting....\n");
 
     std::string file_path = argv[1];
 
@@ -46,14 +53,8 @@ int main(int argc, char *argv[])
     AudioEngine engine;
     engine.loadFile(file_path.c_str());
 
-
-    // interval for me to attach the debugger
-    // 
-
     // Set Terminal Size
     printf("\e[8;24;120t");
-    // Update NCurses drawable Area Accordingly
-    // resizeterm(24, 120);
 
     // start the NCurses env.
     initscr();
@@ -67,12 +68,15 @@ int main(int argc, char *argv[])
     // launch the separateThreads
     boost::thread renderT{boost::bind(&RenderWorker::run, &renderWorker)};
     boost::thread inputT{eventHandlerThread};
-    
+    boost::thread playT{boost::bind(&AudioEngine::playFile, &engine)};
+
     // Cleanup.
     // join main threads
     renderT.join();
     inputT.join();
+    playT.join();
 
+    
     // End curses mode		  
     endwin();			
 

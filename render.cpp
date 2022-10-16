@@ -1,10 +1,12 @@
 #include <render.hpp>
 #include <boost/thread.hpp>
 #include <boost/chrono.hpp>
+#include "audio.hpp"
 
 using namespace CursesAudioPlayer;
 
 extern bool QUIT;
+extern SpectrumInfoFrame *activeFrame;
 
 RenderWorker::RenderWorker(){
     
