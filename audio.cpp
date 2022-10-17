@@ -23,9 +23,9 @@ void AudioEngine::loadFile( const std::string& path){
         _unloadFile();
     }
 
-    _data = new AudioData();
+    _data = new InternalAudioData();
     _data->file = sf_open( path.c_str(), SFM_READ, &_data->info);
-    _data->plan = fftw_plan_dft_r2c_1d( FRAMES_PER_BUFFER, _data->fft_in, _data->fft_out, FFTW_MEASURE );
+    // _data->plan = fftw_plan_dft_r2c_1d( FRAMES_PER_BUFFER, _data->fft_in, _data->fft_out, FFTW_MEASURE );
 
 }
 
@@ -52,26 +52,25 @@ const SoundFileInfo &AudioEngine::getSoundFileInfo(){
 
 
 int AudioEngine::_paStreamCallback(
-    const void                     *input
-    ,void                           *output
-    ,unsigned long                   frameCount
+    const void *input
+    ,void *output
+    ,unsigned long frameCount
     ,const PaStreamCallbackTimeInfo *timeInfo
-    ,PaStreamCallbackFlags           statusFlags
-    ,void                           *userData
-    )
-{
+    ,PaStreamCallbackFlags statusFlags
+    ,void *userData
+    ){
 
     if (QUIT){
         return paComplete;
     }
 
     float *out;
-    AudioData *p_data = (AudioData*)userData;
+    InternalAudioData *p_data = (InternalAudioData*)userData;
 
     sf_count_t num_read;
 
     out = (float*)output;
-    p_data = (AudioData*)userData;
+    p_data = (InternalAudioData*)userData;
 
     /* clear output buffer */
     memset(out, 0, sizeof(float) * frameCount * p_data->info.channels);
@@ -189,11 +188,31 @@ void AudioEngine::_multiplyArrays(double *arr1, double*arr2, double *out, int l)
     }
 }
 
-void AudioEngine::_copyArray(float *src, double*tgt, int l){
+void AudioEngine::_copyArray(float *src, float *tgt, int l){
     for (int i = 0; i < l; i++){
         tgt[i] = src[i];
     }
 }
 
+const ExternalAudioData  AudioEngine::getAudioData(){
+    return {
+        "dummy",
+        "ext",
+        _data->fft_in
+    };
+}
+
+
+
+std::string ExternalAudioData::stringify(){
+    double mean_val = 0;
+    for (int n = 0; n < FRAMES_PER_BUFFER ; n+=2){
+        mean_val += dataSnapshot[n];
+    }
+
+    mean_val = mean_val / FRAMES_PER_BUFFER;
+
+    return "P=" + std::to_string(mean_val) + "\n";
+}
 
 

@@ -59,6 +59,9 @@ void RenderWorker::run(){
     while (!QUIT){
     
         _now = boost::posix_time::microsec_clock::local_time();
+
+        ExternalAudioData engineData = _engine->getAudioData();
+
         
         wclear( _cmdWindow );
         wclear( _spectrumWindow );
@@ -73,6 +76,10 @@ void RenderWorker::run(){
         wattroff(_cmdWindow, A_BOLD );
         mvwprintw( _cmdWindow, 1, _topTerminalSize.x - commands.size() - 2, commands.c_str() );
 
+        std::string dataStringified = engineData.stringify();
+
+        mvwprintw( _fileInfoWindow, 1,1, dataStringified.c_str());
+
         wborder(_playbackInfoWindow, '|', '|', '-', '-', '+', '+', '+', '+');
         wborder(_fileInfoWindow, '|', '|', '-', '-', '+', '+', '+', '+');
 
@@ -80,6 +87,8 @@ void RenderWorker::run(){
         wrefresh( _spectrumWindow );
         wrefresh( _playbackInfoWindow );
         wrefresh( _fileInfoWindow );
+
+
 
         boost::this_thread::sleep(boost::posix_time::millisec(83));   
     }

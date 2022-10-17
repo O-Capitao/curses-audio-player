@@ -64,6 +64,7 @@ int main(int argc, char *argv[])
 
     // init objects
     RenderWorker renderWorker;
+    renderWorker.registerAudioEngine(&engine);
     
     // launch the separateThreads
     boost::thread renderT{boost::bind(&RenderWorker::run, &renderWorker)};

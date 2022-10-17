@@ -4,6 +4,7 @@
 #include <string>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
+#include "audio.hpp"
 
 namespace CursesAudioPlayer{
 
@@ -36,11 +37,16 @@ namespace CursesAudioPlayer{
 
         boost::posix_time::ptime _start_time, _now;
 
+        AudioEngine *_engine;
+
         public:
             
             RenderWorker();
             ~RenderWorker();
             void run();
+            void registerAudioEngine( AudioEngine* engine) {
+                _engine = engine;
+            };
 
 
     };

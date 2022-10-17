@@ -35,7 +35,7 @@ namespace CursesAudioPlayer {
 
     };
 
-    struct AudioData {
+    struct InternalAudioData {
         SNDFILE* file = NULL;
         SF_INFO  info;
         SoundFileInfo sfInfo;
@@ -43,9 +43,17 @@ namespace CursesAudioPlayer {
         int readHead = 0;
         int count = 1;
 
-        double fft_in[FRAMES_PER_BUFFER * NUMBER_OF_CHANNELS];
+        float fft_in[FRAMES_PER_BUFFER * NUMBER_OF_CHANNELS];
         fftw_complex fft_out[FRAMES_PER_BUFFER * NUMBER_OF_CHANNELS];
         fftw_plan plan;
+    };
+
+    struct ExternalAudioData {
+        std::string filename;
+        std::string extension;
+        float *dataSnapshot;
+
+        std::string stringify();
     };
 
     /*
@@ -55,7 +63,7 @@ namespace CursesAudioPlayer {
 
         private:
 
-            AudioData* _data = NULL;
+            InternalAudioData* _data = NULL;
             PaStream *stream;
             double _windowFunctionPoints[FRAMES_PER_BUFFER];
 
@@ -75,21 +83,22 @@ namespace CursesAudioPlayer {
             // https://en.wikipedia.org/wiki/Hann_function
             void _calculateWindowFunction();
             static void _multiplyArrays(double *arr1, double*arr2, double *out, int l);
-            static void _copyArray(float *src, double*tgt, int l);
+            static void _copyArray(float *src, float *tgt, int l);
 
         public:
 
             AudioEngine();
             ~AudioEngine();
             
+            // Player Actions
             void loadFile(const std::string& path);
-            
             void playFile();
             void pauseFile();
             void closeFile();
 
+            // Data access
             const SoundFileInfo &getSoundFileInfo();
-
+            const ExternalAudioData getAudioData();
             void getFrqDomainData();
             
 
