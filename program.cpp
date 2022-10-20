@@ -13,8 +13,6 @@ using namespace CursesAudioPlayer;
 bool QUIT = false;
 bool PLAY = false; // if false its stopped.
 
-SpectrumInfoFrame *activeFrame = NULL;
-
 void eventHandlerThread(){
 
   char c;

@@ -6,7 +6,7 @@
 using namespace CursesAudioPlayer;
 
 extern bool QUIT;
-extern SpectrumInfoFrame *activeFrame;
+// extern SpectrumInfoFrame *activeFrame;
 
 RenderWorker::RenderWorker(){
     

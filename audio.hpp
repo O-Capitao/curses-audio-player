@@ -13,32 +13,17 @@
 
 #define FRAMES_PER_BUFFER (512)
 #define NUMBER_OF_CHANNELS (2)
+#define FFT_NUMBER_OF_BANDS (10)
 
 // about FFTs:
 // https://www.dataq.com/data-acquisition/general-education-tutorials/fft-fast-fourier-transform-waveform-analysis.html
 namespace CursesAudioPlayer {
-
-    struct SoundFileInfo {
-        std::string extension,
-        flename,
-        path;
-
-        int samplerate, n_channels;
-    };
-
-    struct SpectrumInfoFrame {
-
-        int lowerRange;
-        int upperRange;
-        int n_slices;
-        std::complex<float> freqs[];
-
-    };
+    
 
     struct InternalAudioData {
         SNDFILE* file = NULL;
         SF_INFO  info;
-        SoundFileInfo sfInfo;
+        // SoundFileInfo sfInfo;
         int buffer_size = 512;
         int readHead = 0;
         int count = 1;
@@ -97,7 +82,7 @@ namespace CursesAudioPlayer {
             void closeFile();
 
             // Data access
-            const SoundFileInfo &getSoundFileInfo();
+            // const SoundFileInfo &getSoundFileInfo();
             const ExternalAudioData getAudioData();
             void getFrqDomainData();
             

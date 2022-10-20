@@ -6,7 +6,6 @@
 using namespace CursesAudioPlayer;
 
 extern bool QUIT;
-extern SpectrumInfoFrame *activeFrame;
 
 AudioEngine::AudioEngine(){
     _calculateWindowFunction();
@@ -39,17 +38,7 @@ void AudioEngine::_unloadFile(){
 
     _data = NULL;
 
-}
-
-const SoundFileInfo &AudioEngine::getSoundFileInfo(){
-    if (_data != NULL){
-        return _data->sfInfo;
-    } 
-    throw std::runtime_error("No active File, dumping...\n");
-}
-
-
-
+}   
 
 int AudioEngine::_paStreamCallback(
     const void *input
