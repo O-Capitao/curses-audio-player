@@ -12,30 +12,37 @@ AudioEngine::AudioEngine(){
 }
 
 AudioEngine::~AudioEngine(){
+    printf("AudioEngine::~AudioEngine\n");
     _unloadFile();
 }
 
 
 void AudioEngine::loadFile( const std::string& path){
-
+    printf("AudioEngine::_loadFile()\n");
     if (_data != NULL){
         _unloadFile();
     }
 
     _data = new InternalAudioData();
     _data->file = sf_open( path.c_str(), SFM_READ, &_data->info);
-    // _data->plan = fftw_plan_dft_r2c_1d( FRAMES_PER_BUFFER, _data->fft_in, _data->fft_out, FFTW_MEASURE );
+
+    _fft_plan = fftwf_plan_dft_r2c_1d(
+        FFT_NUMBER_OF_BANDS, 
+        _fft_aux_values, 
+        _fft_result, 
+        FFTW_MEASURE
+    );
 
 }
 
 void AudioEngine::_unloadFile(){
 
+    printf("AudioEngine::_unloadFile()\n");
     if (_data == NULL) return;
 
     sf_close(_data->file);
 
     delete _data;
-
     _data = NULL;
 
 }   
@@ -47,7 +54,7 @@ int AudioEngine::_paStreamCallback(
     ,const PaStreamCallbackTimeInfo *timeInfo
     ,PaStreamCallbackFlags statusFlags
     ,void *userData
-    ){
+){
 
     if (QUIT){
         return paComplete;
@@ -138,7 +145,8 @@ void AudioEngine::pauseFile(){
     }
 }
 
-void AudioEngine::closeFile(){
+void AudioEngine::closeFile()
+{
     
     PaError err;
 
@@ -183,25 +191,45 @@ void AudioEngine::_copyArray(float *src, float *tgt, int l){
     }
 }
 
+/*  L  R
+0 -> 0 1
+1 -> 2 3
+2 -> 4 5
+
+
+
+*/
+void _copyChannelWithWindowing( float *src, float *tgt, float *window, int total_l, int channel ){
+
+    assert( total_l % 2 == 0);
+    
+    int n_samples = total_l / 2;
+
+    for (int i = 0; i < n_samples; i++){
+        tgt[i] = src[2 * i + channel] * window[i];
+    }
+}
+
 const ExternalAudioData  AudioEngine::getAudioData(){
     return {
         "dummy",
         "ext",
-        _data->fft_in
+
     };
 }
 
 
 
 std::string ExternalAudioData::stringify(){
-    double mean_val = 0;
-    for (int n = 0; n < FRAMES_PER_BUFFER ; n+=2){
-        mean_val += dataSnapshot[n];
-    }
+    // double mean_val = 0;
+    // for (int n = 0; n < FRAMES_PER_BUFFER ; n+=2){
+    //     mean_val += dataSnapshot[n];
+    // }
 
-    mean_val = mean_val / FRAMES_PER_BUFFER;
+    // mean_val = mean_val / FRAMES_PER_BUFFER;
 
-    return "P=" + std::to_string(mean_val) + "\n";
+    // return "P=" + std::to_string(mean_val) + "\n";
+    return "dummy";
 }
 
 

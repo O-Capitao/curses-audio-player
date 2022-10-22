@@ -19,20 +19,25 @@
 // https://www.dataq.com/data-acquisition/general-education-tutorials/fft-fast-fourier-transform-waveform-analysis.html
 namespace CursesAudioPlayer {
     
-
+    // PortAudio Callback
+    // User obj
     struct InternalAudioData {
+
         SNDFILE* file = NULL;
         SF_INFO  info;
-        // SoundFileInfo sfInfo;
-        int buffer_size = 512;
+        
+        int buffer_size = FRAMES_PER_BUFFER;
         int readHead = 0;
         int count = 1;
-
+        
+        // copy of each buffer, used for output
         float fft_in[FRAMES_PER_BUFFER * NUMBER_OF_CHANNELS];
-        fftw_complex fft_out[FRAMES_PER_BUFFER * NUMBER_OF_CHANNELS];
-        fftw_plan plan;
+
     };
 
+
+    // for outbound communication
+    // from the engine to some client
     struct ExternalAudioData {
         std::string filename;
         std::string extension;
@@ -50,6 +55,11 @@ namespace CursesAudioPlayer {
 
             InternalAudioData* _data = NULL;
             PaStream *stream;
+
+            fftwf_plan _fft_plan;
+            int band_intensities[FFT_NUMBER_OF_BANDS];
+            fftwf_complex _fft_result[FFT_NUMBER_OF_BANDS];
+            float _fft_aux_values[FRAMES_PER_BUFFER];
             double _windowFunctionPoints[FRAMES_PER_BUFFER];
 
             bool PLAYING = false;
@@ -64,17 +74,18 @@ namespace CursesAudioPlayer {
                 PaStreamCallbackFlags statusFlags,
                 void *userData 
             );
-            
+
             // https://en.wikipedia.org/wiki/Hann_function
             void _calculateWindowFunction();
             static void _multiplyArrays(double *arr1, double*arr2, double *out, int l);
             static void _copyArray(float *src, float *tgt, int l);
+            static void _copyChannelWithWindowing( float *src, float *tgt, float *window, int total_l, int channel );
 
         public:
 
             AudioEngine();
             ~AudioEngine();
-            
+
             // Player Actions
             void loadFile(const std::string& path);
             void playFile();
@@ -85,7 +96,6 @@ namespace CursesAudioPlayer {
             // const SoundFileInfo &getSoundFileInfo();
             const ExternalAudioData getAudioData();
             void getFrqDomainData();
-            
 
     };
 }
