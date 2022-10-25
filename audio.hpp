@@ -11,10 +11,6 @@
 #include <complex>
 #include <fftw3.h>
 
-#define FRAMES_PER_BUFFER (512)
-#define NUMBER_OF_CHANNELS (2)
-#define FFT_NUMBER_OF_BANDS (10)
-
 // about FFTs:
 // https://www.dataq.com/data-acquisition/general-education-tutorials/fft-fast-fourier-transform-waveform-analysis.html
 namespace CursesAudioPlayer {
@@ -23,15 +19,20 @@ namespace CursesAudioPlayer {
     // User obj
     struct InternalAudioData {
 
+        InternalAudioData(int bufferSize, const std::string &file_path);
+        ~InternalAudioData();
+
         SNDFILE* file = NULL;
         SF_INFO  info;
         
-        int buffer_size = FRAMES_PER_BUFFER;
+        int buffer_size;
+        std::string filePath;
+
         int readHead = 0;
         int count = 1;
         
         // copy of each buffer, used for output
-        float fft_in[FRAMES_PER_BUFFER * NUMBER_OF_CHANNELS];
+        float *dft_in = NULL;
 
     };
 
@@ -39,9 +40,13 @@ namespace CursesAudioPlayer {
     // for outbound communication
     // from the engine to some client
     struct ExternalAudioData {
+
         std::string filename;
-        std::string extension;
-        float *dataSnapshot;
+        int channels;
+        int sample_rate;
+
+        int n_bands_exported = 0;
+        float *bands;
 
         std::string stringify();
     };
@@ -52,15 +57,25 @@ namespace CursesAudioPlayer {
     class AudioEngine {
 
         private:
+            
+            int _samplesInBuffer;
+            int _dftBandsCount;
 
             InternalAudioData* _data = NULL;
             PaStream *stream;
 
             fftwf_plan _fft_plan;
-            int band_intensities[FFT_NUMBER_OF_BANDS];
-            fftwf_complex _fft_result[FFT_NUMBER_OF_BANDS];
-            float _fft_aux_values[FRAMES_PER_BUFFER];
-            double _windowFunctionPoints[FRAMES_PER_BUFFER];
+
+// _fft_result_arr = new fftwf_complex[ _samplesInBuffer ];
+// _windowFunctionPoints_arr = new float[ _samplesInBuffer ];
+// _dft_Output_Freqs_arr = new float[ _samplesInBuffer / 2 ];
+// _band_intensities_arr = new float[ _dftBandsCount ];
+
+            fftwf_complex *_fft_result_arr;
+            float *_band_intensities_arr;
+            float *_fft_aux_values_arr;
+            float *_windowFunctionPoints_arr;
+            float *_dft_Output_Freqs_arr;
 
             bool PLAYING = false;
 
@@ -76,14 +91,22 @@ namespace CursesAudioPlayer {
             );
 
             // https://en.wikipedia.org/wiki/Hann_function
-            void _calculateWindowFunction();
-            static void _multiplyArrays(double *arr1, double*arr2, double *out, int l);
+            void _calc_windowFunction();
+            void _calc_DFT_OutputFreqs();
+            
+
+            static void _reduceDFTDataToBands( float *src, float *tgt, int n_samnples_src, int n_samples_tgt );
+            // static void _multiplyArrays(double *arr1, double*arr2, double *out, int l);
             static void _copyArray(float *src, float *tgt, int l);
             static void _copyChannelWithWindowing( float *src, float *tgt, float *window, int total_l, int channel );
 
         public:
 
-            AudioEngine();
+            AudioEngine(
+                int samplesInBuffer = 512,
+                int dftBandsCount = 100
+            );
+
             ~AudioEngine();
 
             // Player Actions

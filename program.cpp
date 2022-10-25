@@ -3,6 +3,7 @@
 #include <ncurses.h>
 #include <string>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <sys/ioctl.h>
 
 #include "render.hpp"
 #include "audio.hpp"
@@ -12,6 +13,7 @@ using namespace CursesAudioPlayer;
 // Globl Quit signal
 bool QUIT = false;
 bool PLAY = false; // if false its stopped.
+bool USE_TUI = true;
 
 void eventHandlerThread(){
 
@@ -37,8 +39,8 @@ void eventHandlerThread(){
  */
 int main(int argc, char *argv[])
 {
-    // sleep(5);
-    if (argc != 2){
+    sleep(4);
+    if (argc < 2){
         throw std::runtime_error("Please supply a path to the audio file");
         return 1;
     }
@@ -50,34 +52,50 @@ int main(int argc, char *argv[])
     
     AudioEngine engine;
     engine.loadFile(file_path.c_str());
-
-    // Set Terminal Size
-    printf("\e[8;24;120t");
-
-    // start the NCurses env.
-    initscr();
-    noecho();
-    curs_set(0);
-    keypad(stdscr, true);
-
-    // init objects
-    RenderWorker renderWorker;
-    renderWorker.registerAudioEngine(&engine);
     
-    // launch the separateThreads
-    boost::thread renderT{boost::bind(&RenderWorker::run, &renderWorker)};
+    // Learn current size of terminal,
+    // after exit, we need to put it back
+    winsize w;
+    ioctl(0, TIOCGWINSZ, &w);
+
+
+
+    
+    
     boost::thread inputT{eventHandlerThread};
     boost::thread playT{boost::bind(&AudioEngine::playFile, &engine)};
 
-    // Cleanup.
-    // join main threads
-    renderT.join();
+    // optional curses TUI thread
+    if (USE_TUI){
+
+        // Set Terminal Size to 24 rows, 120 cols
+        printf("\e[8;24;120t");
+
+        // start the NCurses env.
+        initscr();
+        noecho();
+        curs_set(0);
+        keypad(stdscr, true);
+
+        // init objects
+        RenderWorker renderWorker;
+        renderWorker.registerAudioEngine(&engine);
+
+        boost::thread renderT = boost::thread{boost::bind(&RenderWorker::run, &renderWorker)};
+        renderT.join();
+        
+        // End curses mode		  
+        endwin();	
+        // restore initial terminal size
+        printf("\e[8;%i;%it",w.ws_row, w.ws_col);
+
+    }
+
     inputT.join();
     playT.join();
 
     
-    // End curses mode		  
-    endwin();			
+		
 
 	return 0;
 }

@@ -62,7 +62,6 @@ void RenderWorker::run(){
 
         ExternalAudioData engineData = _engine->getAudioData();
 
-        
         wclear( _cmdWindow );
         wclear( _spectrumWindow );
         wclear( _playbackInfoWindow );
@@ -87,8 +86,6 @@ void RenderWorker::run(){
         wrefresh( _spectrumWindow );
         wrefresh( _playbackInfoWindow );
         wrefresh( _fileInfoWindow );
-
-
 
         boost::this_thread::sleep(boost::posix_time::millisec(83));   
     }
